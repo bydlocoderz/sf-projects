@@ -43,10 +43,10 @@ nb:emitSound("vo/eli_lab/mo_gowithalyx01.wav",500)
 hook.add("think","",function()
     if !nb:isValid() then return end
     if nb_health <= 0 then
-        nb:dieAndLeaveRagdoll()
+        nb:dieAndLeaveRagdoll() -- THIS LINE WONT WORK! You should add this function manually or you can use nb:remove() instead
         if nb_dead == false then
             print("Nextbot Example was slain!")
-            nb:emitSound("vo/npc/female01/goodgod.wav",500)
+            nb:emitSound("vo/npc/female01/goodgod.wav",500) -- If you replaced line above with nb:remove() then remove this line
             nb_dead = true
         end
         return
