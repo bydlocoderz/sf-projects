@@ -1,0 +1,81 @@
+--@name NextBot Example NPC is ENRAGED!
+--@server
+
+local Sounds = {
+    "player/neck_snap_01.wav",
+    "player/pl_fallpain.wav",
+    "player/pl_fleshbreak.wav"
+}
+local nb_health = 1000
+local nb_maxhealth = 1000
+local nb_ragecap = nb_maxhealth*0.5
+local nb_rage = false
+local nb_dead = false
+local nb = nextbot.create(chip():getPos()+Vector(0,0,3),"models/mossman.mdl")
+local distance
+local target
+nb:setMoveSpeed(1000)
+nb:setClimbAllowed(true)
+nb:setAcceleration(700)
+nb:setStepHeight(40)
+nb:ragdollOnDeath(true)
+nb:setJumpGapsAllowed(true)
+nb:addInjuredCallback("dmg",function(Damage)
+    nb_health = nb_health - Damage
+    if nb_health < nb_ragecap and nb_rage == false then 
+        nb:emitSound("vo/npc/female01/runforyourlife02.wav",500,70)
+        nb:setAcceleration(2000)
+        print("NextBot Example is furious!")
+        nb_rage = true
+        timer.create("jump",1,0,jumpfunc)
+    end
+end)
+jumpfunc = function()
+    if nb_rage == true and distance.z > 100 then
+        nb:jumpAcrossGap(target:getPos(),target:getPos())
+        timer.remove("jump")
+    end
+end
+nb:addLandCallback("rejump",function()
+    timer.create("jump",1,0,jumpfunc)
+end)
+nb:emitSound("vo/eli_lab/mo_gowithalyx01.wav",500)
+hook.add("think","",function()
+    if !nb:isValid() then return end
+    if nb_health <= 0 then
+        nb:dieAndLeaveRagdoll()
+        if nb_dead == false then
+            print("Nextbot Example was slain!")
+            nb:emitSound("vo/npc/female01/goodgod.wav",500)
+            nb_dead = true
+        end
+        return
+    end
+    local players = find.allPlayers()
+    if #players == 0 then return end
+    distance = (players[1]:getPos() - nb:getPos())
+    target = players[1]
+    for i in pairs(players) do
+        local i = entity(i)
+        if i:isAlive() and (i:getPos() - nb:getPos()):getLength() <= distance:getLength() then
+            distance = i:getPos() - nb:getPos()
+            target = i
+        end
+    end
+    if !target or !target:isAlive() then nb:removeGotoPos() return end
+    nb:setGotoPos(target:getPos())
+    if nb:getPos():getDistance(target:getPos()) < 100 then
+        target:applyDamage(10,nb,nb)
+        if !timer.exists("neckdelay") then
+            target:emitSound(Sounds[math.floor(math.rand(1,#Sounds+1))])
+            timer.create("neckdelay",0.1,1,function() end)
+        end
+        if !target:isAlive() then
+            local insane = (nb_maxhealth-nb_health)*0.02
+            nb:emitSound("vo/npc/female01/watchout.wav",100,100-insane)
+            if nb_rage == true then
+                nb_health = math.min(nb_health + 100,nb_ragecap)
+            end
+        end
+    end
+end)
